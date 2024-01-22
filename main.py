@@ -123,7 +123,7 @@ def main():
         Dropout(0.2),
         Dense(128, activation=activations.swish),
         Dropout(0.3),
-        Dense(20, activation=activations.softmax)  # 20 neurons for 19 categories (+ 1 for zero-indexing)
+        Dense(20, activation=activations.softmax)  # 20 neurons for 20 categories
     ])
 
     # Compile the model
