@@ -42,13 +42,14 @@ def load_data():
 def main():
     full_data_set = load_data()
 
-    # Create a table with all of the train columns and drop the columns without known females. This will become our training dataset
+    # Create a table with all of the train columns and drop the columns without known females. This will become our training dataset.
+    # Requested to keep shell thickness in despite large number of nulls, so I am dropping the null shell thicknesses.
     train_data = full_data_set[['Left.Total.Length', 'Right.Total.Length', 'Posterior.Apron.Length', 'Anterior.Apron.Length', 'Apron.to.Apron.length', 
                                 'Anterior.Waist.to.Posterior.Apron.Length', 'Hatching.End.Widest', 'Anterior.End.Width', 'Anterior.Width.Apron.Start', 
                                 'Width.Central.Waist.Max', 'Width.Central.Waist', 'Max.Width', 'Central.Body.Width.Max.Width', 'Posterior.Width.Apron.Start', 
                                 'Posterior.End.Width', 'Max.Depth', 'Top.Anterior.Respiratory.Slit', 'Top.Posterior.Respiratory.Slit', 
                                 'Bottom.Anterior.Respiratory.Slit', 'Bottom.Posterior.Respiratory.Slit', 'Shell.Thickness', 
-                                'Yolk.Num', 'Female.Num']].dropna(subset='Female.Num')
+                                'Yolk.Num', 'Female.Num']].dropna(subset=['Female.Num', 'Shell.Thickness'])
     
     # Clean out all rows with more than 6 null values
     total_columns = len(train_data.columns)
@@ -56,18 +57,16 @@ def main():
 
     '''
     In the cleaned data, which columns are still carrying a lot of null values? 
-
+    
     null_counts = train_data_cleaned.isnull().sum()
     print(null_counts)
     
     Results of cleaned data null counts per column:
 
-    Left.Total.Length                            0
-    Right.Total.Length                           1
     Posterior.Apron.Length                       0
     Anterior.Apron.Length                        0
-    Apron.to.Apron.length                       82      -- drop
-    Anterior.Waist.to.Posterior.Apron.Length    81      -- drop
+    Apron.to.Apron.length                       82  -- drop
+    Anterior.Waist.to.Posterior.Apron.Length    81  -- drop
     Hatching.End.Widest                          5
     Anterior.End.Width                           1
     Anterior.Width.Apron.Start                   1
@@ -77,15 +76,17 @@ def main():
     Central.Body.Width.Max.Width                 0
     Posterior.Width.Apron.Start                  1
     Posterior.End.Width                          0
-    Max.Depth                                    2
-    Top.Anterior.Respiratory.Slit                3
-    Top.Posterior.Respiratory.Slit               3
-    Bottom.Anterior.Respiratory.Slit             4
-    Bottom.Posterior.Respiratory.Slit            5
-    Shell.Thickness                             86      -- drop
+    Max.Depth                                    1
+    Top.Anterior.Respiratory.Slit                2
+    Top.Posterior.Respiratory.Slit               2
+    Bottom.Anterior.Respiratory.Slit             3
+    Bottom.Posterior.Respiratory.Slit            4
+    Shell.Thickness                              0
+    Yolk.Num                                     0
+    Female.Num                                   0
     '''
 
-    train_data_cleaned_drop_cols = train_data_cleaned.drop(['Apron.to.Apron.length', 'Anterior.Waist.to.Posterior.Apron.Length', 'Shell.Thickness'], axis=1)
+    train_data_cleaned_drop_cols = train_data_cleaned.drop(['Apron.to.Apron.length', 'Anterior.Waist.to.Posterior.Apron.Length'], axis=1)
 
     # For the remaining features, we want to fill in our null values using KNN imputer. 
     # Accurately predict missing values by using the closest matching row information.
@@ -139,11 +140,12 @@ def main():
     print('____________________________________________________________________________')
 
     # Next we run the whole dataset through the model and produce our predictions
-    predict_dataset = full_data_set[['Left.Total.Length', 'Right.Total.Length', 'Posterior.Apron.Length', 'Anterior.Apron.Length',  
+    predict_dataset = full_data_set[['Left.Total.Length', 'Right.Total.Length', 'Posterior.Apron.Length', 'Anterior.Apron.Length', 
                                      'Hatching.End.Widest', 'Anterior.End.Width', 'Anterior.Width.Apron.Start', 'Width.Central.Waist.Max', 
-                                     'Width.Central.Waist', 'Max.Width', 'Central.Body.Width.Max.Width', 'Posterior.Width.Apron.Start', 'Posterior.End.Width', 
-                                     'Max.Depth', 'Top.Anterior.Respiratory.Slit', 'Top.Posterior.Respiratory.Slit', 'Bottom.Anterior.Respiratory.Slit', 
-                                     'Bottom.Posterior.Respiratory.Slit', 'Yolk.Num']]
+                                     'Width.Central.Waist', 'Max.Width', 'Central.Body.Width.Max.Width', 'Posterior.Width.Apron.Start', 
+                                     'Posterior.End.Width', 'Max.Depth', 'Top.Anterior.Respiratory.Slit', 'Top.Posterior.Respiratory.Slit', 
+                                     'Bottom.Anterior.Respiratory.Slit', 'Bottom.Posterior.Respiratory.Slit', 'Shell.Thickness', 
+                                     'Yolk.Num']].dropna(subset='Shell.Thickness')
     # Clean out all rows with more than 6 null values
     total_columns_pre = len(predict_dataset.columns)
     predict_data_cleaned = predict_dataset.dropna(thresh=total_columns_pre - 6)
@@ -166,16 +168,20 @@ def main():
     predictions = [female_numeric[pred.argmax()] for pred in predictions_probabilities]
 
     # put predictions into cleaned full dataset
-    output_ds = full_data_set.dropna(subset=['Left.Total.Length', 'Right.Total.Length', 'Posterior.Apron.Length', 'Anterior.Apron.Length',  
-                                             'Hatching.End.Widest', 'Anterior.End.Width', 'Anterior.Width.Apron.Start', 'Width.Central.Waist.Max', 
-                                             'Width.Central.Waist', 'Max.Width', 'Central.Body.Width.Max.Width', 'Posterior.Width.Apron.Start', 
-                                             'Posterior.End.Width', 'Max.Depth', 'Top.Anterior.Respiratory.Slit', 'Top.Posterior.Respiratory.Slit', 
-                                             'Bottom.Anterior.Respiratory.Slit', 'Bottom.Posterior.Respiratory.Slit', 'Yolk.Num'], thresh=total_columns_pre - 6)
+    output_ds = full_data_set.dropna(subset='Shell.Thickness').dropna(subset=['Left.Total.Length', 'Right.Total.Length', 
+                                                                              'Posterior.Apron.Length', 'Anterior.Apron.Length',  
+                                                                              'Hatching.End.Widest', 'Anterior.End.Width', 
+                                                                              'Anterior.Width.Apron.Start', 'Width.Central.Waist.Max', 
+                                                                              'Width.Central.Waist', 'Max.Width', 'Central.Body.Width.Max.Width', 
+                                                                              'Posterior.Width.Apron.Start', 'Posterior.End.Width', 'Max.Depth', 
+                                                                              'Top.Anterior.Respiratory.Slit', 'Top.Posterior.Respiratory.Slit', 
+                                                                              'Bottom.Anterior.Respiratory.Slit', 
+                                                                              'Bottom.Posterior.Respiratory.Slit', 
+                                                                              'Yolk.Num'], thresh=total_columns_pre - 6)
     output_ds['Predicted_Female'] = predictions
 
     # put new updated full dataset into excel file
     output_ds.to_excel("Results.xlsx", sheet_name="Data")
-
 
 if __name__ == "__main__":
     main()
